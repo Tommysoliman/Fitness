@@ -39,7 +39,15 @@ GYM BUILD MUSCLE — Muscle & Strength 4-day split, 3 sets, 90 sec rest:
     Seated Calf Raise 3×12,12,12 | Calf Press 3×12,12,12
   Important: NEVER recommend Deadlifts. Never use *, +, ^, or the words "drop set" — plain English only.
 
-BODYWEIGHT — push-ups, pull-ups, dips, squats, lunges, planks, burpees, mountain climbers."""
+BODYWEIGHT — push-ups, pull-ups, dips, squats, lunges, planks, burpees, mountain climbers.
+
+LOSE WEIGHT — Shortcut to Shred cardio acceleration 6-day split:
+  Replace ALL rest periods with 1 minute of cardio acceleration between every set.
+  Cardio options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
+  Day 1: Chest, Triceps, Abs (Multi-Joint) | Day 2: Shoulders, Legs, Calves (Multi-Joint) | Day 3: Back, Traps, Biceps (Multi-Joint)
+  Day 4: Chest, Triceps, Abs (Single Joint) | Day 5: Shoulders, Legs, Calves (Single Joint) | Day 6: Back, Traps, Biceps (Single Joint)
+  Progressive rep ranges: Week 1=9-11 | Week 2=6-8 | Week 3=12-15 | Week 4=16-20
+  NEVER recommend Deadlifts — replace with Romanian Deadlift or Leg Press."""
 
 NUTRITIONIST_SYSTEM = """You are a certified sports nutritionist with a PhD in Sports Science.
 Protein targets: Build Muscle 2.2g/kg | Lose Weight 2.0g/kg | Other 1.8g/kg
@@ -50,6 +58,50 @@ Output ONLY the meal plan sections — no BMR formulas, no calculation steps."""
 # ── Prompt builders ─────────────────────────────────────────────────────────
 
 def _workout_prompt(weight, age, fitness_level, location, workout_type, goal):
+    if goal == "Lose Weight":
+        return f"""Create a 4-WEEK cardio acceleration fat-loss workout plan for:
+Weight: {weight}kg | Age: {age} | Level: {fitness_level} | Location: {location} | Goal: Lose Weight
+
+CARDIO ACCELERATION RULE: Replace ALL rest periods with 1 minute of cardio acceleration between every single set.
+Cardio options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
+
+6 WORKOUTS PER WEEK:
+  Day 1: Chest, Triceps, Abs (Multi-Joint)
+  Day 2: Shoulders, Legs, Calves (Multi-Joint)
+  Day 3: Back, Traps, Biceps (Multi-Joint)
+  Day 4: Chest, Triceps, Abs (Single Joint)
+  Day 5: Shoulders, Legs, Calves (Single Joint)
+  Day 6: Back, Traps, Biceps (Single Joint)
+  Day 7: Rest
+
+PROGRESSIVE OVERLOAD — rep ranges change each week:
+  Week 1: 9-11 reps | Week 2: 6-8 reps | Week 3: 12-15 reps | Week 4: 16-20 reps
+
+Scale for {fitness_level}: Beginner=3 sets | Intermediate=3-4 sets | Advanced=4-5 sets
+
+OUTPUT FORMAT — follow this exact structure, no exceptions:
+
+## Week 1
+
+> Between every set, replace rest with 1 minute of cardio acceleration.
+
+### Day 1 — Chest, Triceps & Abs (Multi-Joint)
+
+| Exercise | Sets | Reps | Cardio Acceleration |
+|---|---|---|---|
+| Incline Barbell Bench Press | 3 | 9-11 | 1 min running in place |
+| Flat Dumbbell Bench Press | 3 | 9-11 | 1 min jump rope |
+| Dips | 4 | 9-11 | 1 min squat jumps |
+| Close-Grip Bench Press | 4 | 9-11 | 1 min mountain climbers |
+| Cable Crunch | 3 | 9-11 | 1 min burpees |
+| Lying Leg Raise | 3 | 9-11 | 1 min lunge jumps |
+
+### Day 2 — Shoulders, Legs & Calves (Multi-Joint)
+(same table format, 6-8 exercises)
+
+Continue this EXACT pattern for all 6 workout days and all 4 weeks.
+RULES: NEVER recommend Deadlifts — replace with Romanian Deadlift or Leg Press. Never use "hypertrophy" — use "Build Muscle". Never use *, +, ^ symbols. Never write "drop set". Plain English only. Every day MUST have a Markdown table."""
+
     if workout_type in ("HIIT", "Cardio"):
         style = "Follow INSANITY max-interval style with warm-up, main circuit x3, cool-down."
     elif workout_type == "Weights":
@@ -57,14 +109,10 @@ def _workout_prompt(weight, age, fitness_level, location, workout_type, goal):
     else:
         style = "Bodyweight circuit: push-ups, pull-ups, squats, lunges, planks, burpees."
 
-    hiit_note = ""
-    if goal == "Lose Weight":
-        hiit_note = "\n🔥 HIIT FINISHER: Add a 15-min HIIT finisher (40s on/20s off, 3 rounds of 5 exercises) at the END of exactly 3 workout days per week. Label each as '🔥 15-Min HIIT Finisher'. Vary exercises each week."
-
     return f"""Create a 4-WEEK workout plan for:
 Weight: {weight}kg | Age: {age} | Level: {fitness_level} | Location: {location} | Type: {workout_type} | Goal: {goal}
 
-Style: {style}{hiit_note}
+Style: {style}
 
 Scale for {fitness_level}: Beginner=fewer sets/longer rest | Intermediate=as written | Advanced=extra sets/shorter rest
 Show progressive overload Week 1→4.
@@ -179,6 +227,47 @@ def stream_plans(weight, age, fitness_level, location, workout_type, goal):
     t1.join()
     t2.join()
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+
+# ── Target body-part workout ─────────────────────────────────────────────────
+
+def stream_target_workout(body_part):
+    """Stream a focused workout for a specific body part."""
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    prompt = f"""Create a focused {body_part} workout session.
+
+OUTPUT FORMAT — follow exactly, no exceptions:
+
+## {body_part} Workout
+
+| Exercise | Sets | Reps | Rest |
+|---|---|---|---|
+| Example Exercise | 3 | 12 | 60 sec |
+
+Include 6-8 exercises targeting {body_part}.
+After the table, add a short **Tips** section (3 bullet points) on form and technique.
+RULES: NEVER recommend Deadlifts. Never use *, +, ^ symbols. Plain English only."""
+
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": COACH_SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
+            stream=True,
+            max_tokens=1000,
+            temperature=0.7,
+        )
+        for chunk in resp:
+            token = chunk.choices[0].delta.content or ""
+            if token:
+                yield f"data: {json.dumps({'chunk': token})}\n\n"
+    except Exception as e:
+        yield f"data: {json.dumps({'chunk': f'**Error:** {e}'})}\n\n"
+    finally:
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 
 # ── Q&A streaming ────────────────────────────────────────────────────────────

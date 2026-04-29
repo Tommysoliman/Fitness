@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, Response, stream_with_context
 import os
 from dotenv import load_dotenv
-from crew import stream_plans, ask_agent
+from crew import stream_plans, ask_agent, stream_target_workout
 
 load_dotenv()
 
@@ -42,6 +42,21 @@ def generate():
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
         },
+    )
+
+
+@app.route("/target", methods=["POST"])
+def target():
+    data = request.get_json()
+    body_part = data.get("body_part", "Abs")
+
+    def event_stream():
+        yield from stream_target_workout(body_part)
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 

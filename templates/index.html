@@ -56,6 +56,33 @@
     input[type="number"]:focus, select:focus { border-color: #003366; }
     select option { background: #0f0f1a; }
 
+    /* ── BODY PART CARDS ── */
+    .body-part-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    @media (max-width: 700px) { .body-part-grid { grid-template-columns: repeat(3, 1fr); } }
+    .bp-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.9rem 0.5rem;
+      background: #0f0f1a;
+      border: 2px solid #ffffff15;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .bp-card:hover { border-color: #003366; background: #0f1a2e; }
+    .bp-card.selected { border-color: #003366; background: #003366; }
+    .bp-icon { font-size: 1.6rem; }
+    .bp-label { font-size: 0.82rem; font-weight: 600; color: #9ca3af; }
+    .bp-card.selected .bp-label { color: #ffffff; }
+
     /* ── WORKOUT TYPE CARDS ── */
     .workout-type-grid {
       display: grid;
@@ -182,7 +209,14 @@
     .tab-content.active { display: block; }
 
     /* markdown */
-    .plan-body h1, .plan-body h2 { color: #c4b5fd; margin: 1.4rem 0 0.6rem; }
+    .plan-body h1 { color: #c4b5fd; margin: 1.4rem 0 0.6rem; }
+    .plan-body h2 {
+      color: #c4b5fd;
+      margin: 2.5rem 0 0.8rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid #003366;
+    }
+    .plan-body h2:first-child { border-top: none; padding-top: 0; margin-top: 0.6rem; }
     .plan-body h3 { color: #a78bfa; margin: 1.1rem 0 0.4rem; }
     .plan-body h4 { color: #818cf8; margin: 0.8rem 0 0.3rem; }
     .plan-body p { line-height: 1.7; margin-bottom: 0.7rem; color: #d1d5db; }
@@ -414,6 +448,7 @@
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('workout', this)">🏋️ Workout Plan</button>
       <button class="tab-btn" onclick="switchTab('nutrition', this)">🥗 Meal Plan</button>
+      <button class="tab-btn" onclick="switchTab('target', this)">🎯 Specific Muscle</button>
     </div>
 
     <!-- Workout Tab -->
@@ -434,6 +469,11 @@
     <!-- Nutrition Tab -->
     <div class="tab-content" id="tab-nutrition">
       <button class="btn-pdf" onclick="downloadPDF('nutrition')">⬇️ Download Meal Plan as PDF</button>
+      <div id="caloriesDisplay" style="display:none; font-size:0.92rem; color:#9ca3af; margin-bottom:1rem;">
+        <span style="font-weight:700; color:#c4b5fd;">Daily Nutrition Targets</span>
+        &nbsp;—&nbsp;Estimated daily calories:
+        <span id="caloriesValue" style="font-weight:800; color:#ffffff;"></span>
+      </div>
       <div class="plan-body" id="meal-plan-body"></div>
 
       <div class="qa-section">
@@ -442,6 +482,28 @@
         <div class="chat-input-row">
           <input type="text" id="qa-input-nutrition" placeholder="e.g. What can I eat if I'm vegetarian?" />
           <button class="btn-ask" id="qa-btn-nutrition" onclick="askAgent('nutrition')">Send</button>
+        </div>
+      </div>
+    </div>
+    <!-- Train Sepcific Muscle Tab -->
+    <div class="tab-content" id="tab-target">
+      <p style="color:#9ca3af; font-size:0.9rem; margin-bottom:1.2rem;">Choose a body part to get a focused workout:</p>
+      <div class="body-part-grid" id="bpGrid">
+        <div class="bp-card selected" data-value="Glutes" onclick="selectBP(this)"><span class="bp-icon">🍑</span><span class="bp-label">Glutes</span></div>
+        <div class="bp-card" data-value="Legs" onclick="selectBP(this)"><span class="bp-icon">🦵</span><span class="bp-label">Legs</span></div>
+        <div class="bp-card" data-value="Abs" onclick="selectBP(this)"><span class="bp-icon">🔥</span><span class="bp-label">Abs</span></div>
+        <div class="bp-card" data-value="Back" onclick="selectBP(this)"><span class="bp-icon">🧗</span><span class="bp-label">Back</span></div>
+        <div class="bp-card" data-value="Chest" onclick="selectBP(this)"><span class="bp-icon">🛡️</span><span class="bp-label">Chest</span></div>
+        <div class="bp-card" data-value="Arms" onclick="selectBP(this)"><span class="bp-icon">💪</span><span class="bp-label">Arms</span></div>
+      </div>
+      <button class="btn-generate" style="margin-top:1.2rem; max-width:320px;" id="targetBtn" onclick="generateTarget()">🎯 Generate Workout</button>
+      <div class="plan-body" id="target-plan-body" style="margin-top:1.5rem;"></div>
+      <div class="qa-section">
+        <div class="qa-title">💬 Ask About This Workout</div>
+        <div class="chat-history" id="chat-target"></div>
+        <div class="chat-input-row">
+          <input type="text" id="qa-input-target" placeholder="e.g. How do I feel the glutes more on hip thrusts?" />
+          <button class="btn-ask" id="qa-btn-target" onclick="askAgent('target')">Send</button>
         </div>
       </div>
     </div>
@@ -496,22 +558,12 @@
 
       document.getElementById('loader').style.display = 'none';
       document.getElementById('results').style.display = 'block';
-      document.getElementById('metricsRow').style.display = 'flex';
       document.getElementById('errorBox').style.display = 'none';
       document.getElementById('submitBtn').disabled = true;
       document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
       // Pre-fill metrics
-      const pm = goal === 'Build Muscle' ? 2.2 : (goal === 'Lose Weight' ? 2.0 : 1.8);
-      document.getElementById('metProtein').textContent = Math.round(weight * pm) + 'g';
-      document.getElementById('metWater').textContent   = (weight * 0.037).toFixed(1) + 'L';
-      const goalStyle = {
-        'Build Muscle':      '💪 Hypertrophy',
-        'Lose Weight':       '🔥 Fat Burn',
-        'Improve Fitness':   '⚡ Conditioning',
-        'Increase Strength': '🏆 Strength',
-      };
-      document.getElementById('metStyle').textContent = goalStyle[goal] || goal;
+      updateMetrics();
 
       try {
         const resp = await fetch('/generate', {
@@ -576,10 +628,10 @@
     }
 
     async function askAgent(type) {
-      const inputEl = document.getElementById(type === 'fitness' ? 'qa-input-workout'   : 'qa-input-nutrition');
-      const chatEl  = document.getElementById(type === 'fitness' ? 'chat-workout'        : 'chat-nutrition');
-      const btnEl   = document.getElementById(type === 'fitness' ? 'qa-btn-workout'      : 'qa-btn-nutrition');
-      const context = type === 'fitness' ? workoutRaw : nutritionRaw;
+      const inputEl = document.getElementById(type === 'fitness' ? 'qa-input-workout' : type === 'nutrition' ? 'qa-input-nutrition' : 'qa-input-target');
+      const chatEl  = document.getElementById(type === 'fitness' ? 'chat-workout'     : type === 'nutrition' ? 'chat-nutrition'     : 'chat-target');
+      const btnEl   = document.getElementById(type === 'fitness' ? 'qa-btn-workout'   : type === 'nutrition' ? 'qa-btn-nutrition'   : 'qa-btn-target');
+      const context = type === 'fitness' ? workoutRaw : type === 'nutrition' ? nutritionRaw : targetRaw;
 
       const question = inputEl.value.trim();
       if (!question) return;
@@ -638,12 +690,107 @@
       }
     }
 
+    /* ── Body part card selection & target workout ── */
+    let targetRaw = '';
+    function selectBP(card) {
+      document.querySelectorAll('.bp-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    }
+
+    async function generateTarget() {
+      const card = document.querySelector('.bp-card.selected');
+      if (!card) return;
+      const bodyPart = card.dataset.value;
+      const btn = document.getElementById('targetBtn');
+      const bodyEl = document.getElementById('target-plan-body');
+
+      btn.disabled = true;
+      targetRaw = '';
+      bodyEl.innerHTML = `<div class="plan-loading"><div class="dot-spinner"></div><span class="loading-text">Generating ${bodyPart} workout</span></div>`;
+      document.getElementById('chat-target').innerHTML = '';
+
+      try {
+        const resp = await fetch('/target', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ body_part: bodyPart }),
+        });
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let renderTimer = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            let ev;
+            try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+            if (ev.chunk) {
+              targetRaw += ev.chunk;
+              clearTimeout(renderTimer);
+              renderTimer = setTimeout(() => { bodyEl.innerHTML = marked.parse(targetRaw); }, 150);
+            } else if (ev.type === 'done') {
+              clearTimeout(renderTimer);
+              bodyEl.innerHTML = marked.parse(targetRaw);
+            }
+          }
+        }
+      } catch (err) {
+        bodyEl.textContent = '❌ ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Enter key for target Q&A
+    document.getElementById('qa-input-target').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAgent('target'); }
+    });
+
     /* ── Workout type card selection ── */
     function selectWT(card) {
       document.querySelectorAll('.wt-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       document.getElementById('workout_type').value = card.dataset.value;
     }
+
+    /* ── Live metrics update ── */
+    function updateMetrics() {
+      const weight = parseFloat(document.getElementById('weight').value) || 75;
+      const goal   = document.getElementById('goal').value;
+      const pm     = goal === 'Build Muscle' ? 2.2 : (goal === 'Lose Weight' ? 2.0 : 1.8);
+      const kcal   = goal === 'Build Muscle' ? Math.round(weight * 33) + 400
+                   : goal === 'Lose Weight'  ? Math.round(weight * 33) - 500
+                   : Math.round(weight * 33);
+      const goalStyle = {
+        'Build Muscle':      '💪 Build Muscle',
+        'Lose Weight':       '🔥 Fat Burn',
+        'Improve Fitness':   '⚡ Conditioning',
+        'Increase Strength': '🏆 Strength',
+      };
+      document.getElementById('metProtein').textContent = Math.round(weight * pm) + 'g';
+      document.getElementById('metWater').textContent   = (weight * 0.037).toFixed(1) + 'L';
+      document.getElementById('metStyle').textContent   = goalStyle[goal] || goal;
+      document.getElementById('caloriesValue').textContent = kcal + ' kcal';
+      document.getElementById('caloriesDisplay').style.display = 'block';
+      document.getElementById('metricsRow').style.display = 'flex';
+    }
+
+    // Show metrics on page load and update on any form change
+    updateMetrics();
+    ['weight', 'age', 'fitness_level', 'location', 'goal'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', updateMetrics);
+      el.addEventListener('change', updateMetrics);
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('planForm').requestSubmit(); }
+      });
+    });
 
     // Enter key to send Q&A
     document.getElementById('qa-input-workout').addEventListener('keydown', e => {
