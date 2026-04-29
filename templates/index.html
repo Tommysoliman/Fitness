@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Fitness & Nutrition Planner</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e8e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      padding: 3rem 1.5rem 2.5rem;
+      text-align: center;
+      border-bottom: 1px solid #ffffff18;
+    }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; }
+    .hero h1 span { color: #ffffff; }
+    .hero p { margin-top: 0.6rem; color: #9ca3af; font-size: 1rem; }
+
+    /* ── FORM CARD ── */
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #ffffff12;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 760px;
+      margin: 2.5rem auto;
+    }
+    .card h2 { font-size: 1.2rem; margin-bottom: 1.5rem; color: #c4b5fd; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 0.4rem; }
+    label { font-size: 0.82rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    input[type="number"], select {
+      background: #0f0f1a;
+      border: 1px solid #ffffff20;
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      color: #e8e8f0;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:focus, select:focus { border-color: #003366; }
+    select option { background: #0f0f1a; }
+
+    /* ── WORKOUT TYPE CARDS ── */
+    .workout-type-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    @media (max-width: 600px) { .workout-type-grid { grid-template-columns: repeat(2, 1fr); } }
+    .wt-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.9rem 0.5rem;
+      background: #0f0f1a;
+      border: 2px solid #ffffff15;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .wt-card:hover { border-color: #003366; background: #0f1a2e; }
+    .wt-card.selected { border-color: #003366; background: #003366; }
+    .wt-card .wt-icon { font-size: 1.6rem; }
+    .wt-card .wt-label { font-size: 0.82rem; font-weight: 600; color: #9ca3af; }
+    .wt-card.selected .wt-label { color: #ffffff; }
+
+    .btn-generate {
+      display: block;
+      width: 100%;
+      margin-top: 1.8rem;
+      padding: 0.9rem;
+      background: #003366;
+      color: #ffffff;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-generate:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-generate:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ── METRICS ── */
+    .metrics { display: flex; gap: 1rem; max-width: 760px; margin: 0 auto 1.5rem; flex-wrap: wrap; padding: 0 1rem; }
+    .metric {
+      flex: 1 1 160px;
+      background: #003366;
+      border-left: 4px solid #003366;
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+    }
+    .metric .label { font-size: 0.75rem; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric .value { font-size: 1.6rem; font-weight: 800; color: #ffffff; margin-top: 0.2rem; }
+
+    /* ── LOADER ── */
+    .loader-wrap { display: none; text-align: center; padding: 3rem 1rem; }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 5px solid #ffffff18;
+      border-top-color: #003366;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-wrap p { color: #9ca3af; font-size: 0.95rem; }
+
+    /* ── INLINE LOADING ── */
+    .plan-loading {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 1.5rem 0;
+      color: #9ca3af;
+      font-size: 0.95rem;
+    }
+    .plan-loading .dot-spinner {
+      width: 20px; height: 20px;
+      border: 3px solid #ffffff18;
+      border-top-color: #003366;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    .loading-text::after {
+      content: '';
+      animation: dots 1.4s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%   { content: ''; }
+      25%  { content: '.'; }
+      50%  { content: '..'; }
+      75%  { content: '...'; }
+      100% { content: ''; }
+    }
+
+    /* ── RESULTS ── */
+    #results { display: none; max-width: 900px; margin: 0 auto 4rem; padding: 0 1rem; }
+
+    .tabs { display: flex; gap: 0.5rem; }
+    .tab-btn {
+      flex: 1;
+      padding: 0.75rem;
+      background: #1a1a2e;
+      border: 1px solid #ffffff15;
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      color: #9ca3af;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tab-btn.active { background: #003366; color: #ffffff; border-color: #003366; font-weight: 700; }
+
+    .tab-content {
+      display: none;
+      background: #1a1a2e;
+      border: 1px solid #ffffff15;
+      border-radius: 0 0 12px 12px;
+      padding: 2rem;
+    }
+    .tab-content.active { display: block; }
+
+    /* markdown */
+    .plan-body h1, .plan-body h2 { color: #c4b5fd; margin: 1.4rem 0 0.6rem; }
+    .plan-body h3 { color: #a78bfa; margin: 1.1rem 0 0.4rem; }
+    .plan-body h4 { color: #818cf8; margin: 0.8rem 0 0.3rem; }
+    .plan-body p { line-height: 1.7; margin-bottom: 0.7rem; color: #d1d5db; }
+    .plan-body ul, .plan-body ol { padding-left: 1.4rem; margin-bottom: 0.8rem; }
+    .plan-body li { line-height: 1.7; color: #d1d5db; }
+    .plan-body strong { color: #e8e8f0; }
+    .plan-body table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.88rem; }
+    .plan-body th { background: #00336622; color: #ffffff; padding: 0.55rem 0.8rem; text-align: left; border-bottom: 1px solid #ffffff18; }
+    .plan-body td { padding: 0.5rem 0.8rem; border-bottom: 1px solid #ffffff0d; color: #d1d5db; }
+    .plan-body tr:hover td { background: #ffffff06; }
+    .plan-body code { background: #0f0f1a; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.87rem; color: #a78bfa; }
+    .plan-body hr { border: none; border-top: 1px solid #ffffff15; margin: 1.5rem 0; }
+
+    /* ── PDF BUTTON ── */
+    .btn-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.4rem;
+      padding: 0.5rem 1.1rem;
+      background: #f97316;
+      border: none;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-pdf:hover { opacity: 0.85; }
+
+    /* ── Q&A SECTION ── */
+    .qa-section {
+      margin-top: 2.5rem;
+      border-top: 1px solid #ffffff12;
+      padding-top: 1.5rem;
+    }
+    .qa-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1rem;
+    }
+    .chat-history {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 380px;
+      overflow-y: auto;
+      margin-bottom: 0.9rem;
+      padding-right: 4px;
+    }
+    .msg {
+      padding: 0.65rem 1rem;
+      border-radius: 10px;
+      max-width: 88%;
+      line-height: 1.65;
+      font-size: 0.93rem;
+    }
+    .msg.user {
+      background: #00336622;
+      border: 1px solid #00336644;
+      align-self: flex-end;
+      color: #ffffff;
+    }
+    .msg.assistant {
+      background: #0f1623;
+      border: 1px solid #ffffff12;
+      align-self: flex-start;
+      color: #d1d5db;
+    }
+    .msg.assistant p { color: #d1d5db; margin-bottom: 0.4rem; }
+    .msg.assistant h3, .msg.assistant h4 { color: #a78bfa; margin: 0.5rem 0 0.2rem; }
+    .msg.assistant ul, .msg.assistant ol { padding-left: 1.2rem; }
+    .msg.assistant li { color: #d1d5db; }
+    .msg.assistant strong { color: #e8e8f0; }
+    .msg.thinking { color: #6b7280; font-style: italic; }
+    .chat-input-row { display: flex; gap: 0.6rem; }
+    .chat-input-row input {
+      flex: 1;
+      background: #0f0f1a;
+      border: 1px solid #ffffff20;
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      color: #e8e8f0;
+      font-size: 0.93rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .chat-input-row input:focus { border-color: #003366; }
+    .btn-ask {
+      padding: 0.6rem 1.2rem;
+      background: #003366;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .btn-ask:hover { opacity: 0.85; }
+    .btn-ask:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── PRINT / PDF ── */
+    #print-area { display: none; }
+    @media print {
+      body > *:not(#print-area) { display: none !important; }
+      #print-area {
+        display: block !important;
+        color: #000;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 12pt;
+        padding: 1.5cm;
+      }
+      #print-area h1, #print-area h2 { color: #9a3412; margin: 1rem 0 0.4rem; }
+      #print-area h3 { color: #15803d; margin: 0.8rem 0 0.3rem; }
+      #print-area table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; }
+      #print-area th { background: #ffedd5; padding: 0.4rem 0.6rem; text-align: left; border: 1px solid #fed7aa; }
+      #print-area td { padding: 0.35rem 0.6rem; border: 1px solid #ffe4ca; }
+      #print-area ul, #print-area ol { padding-left: 1.2rem; }
+      #print-area li { margin-bottom: 0.2rem; }
+    }
+
+    /* ── ERROR ── */
+    .error-box {
+      display: none;
+      background: #2d1515;
+      border: 1px solid #ef444460;
+      border-radius: 10px;
+      padding: 1rem 1.4rem;
+      color: #fca5a5;
+      max-width: 760px;
+      margin: 1rem auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>💪 <span>let's get fit together</span></h1>
+    <p>Elite AI Fitness Coach + Sports Nutritionist — your full monthly plan in seconds</p>
+  </div>
+
+  <!-- Form -->
+  <div class="card">
+    <h2>Your Profile</h2>
+    <form id="planForm">
+      <div class="grid-2">
+        <div class="field">
+          <label>Weight (kg)</label>
+          <input type="number" id="weight" value="75" min="40" max="250" required />
+        </div>
+        <div class="field">
+          <label>Age</label>
+          <input type="number" id="age" value="28" min="16" max="80" required />
+        </div>
+        <div class="field">
+          <label>Fitness Level</label>
+          <select id="fitness_level">
+            <option>Beginner</option>
+            <option selected>Intermediate</option>
+            <option>Advanced</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Workout Location</label>
+          <select id="location">
+            <option>Gym</option>
+            <option>Home</option>
+            <option>Garden/Outdoor</option>
+          </select>
+        </div>
+      </div>
+      <!-- Workout Type Cards (full width) -->
+      <div class="field" style="margin-top:1rem;">
+        <label>Workout Type</label>
+        <div class="workout-type-grid" id="wtGrid" style="grid-template-columns: repeat(2, 1fr); max-width: 320px;">
+          <div class="wt-card selected" data-value="Weights" onclick="selectWT(this)">
+            <span class="wt-icon">🏋️</span><span class="wt-label">Weights</span>
+          </div>
+          <div class="wt-card" data-value="Bodyweight" onclick="selectWT(this)">
+            <span class="wt-icon">💪</span><span class="wt-label">Bodyweight</span>
+          </div>
+        </div>
+        <input type="hidden" id="workout_type" value="Weights" />
+      </div>
+      <div class="field" style="margin-top:1rem;">
+        <label>Main Goal</label>
+        <select id="goal">
+          <option>Build Muscle</option>
+          <option>Lose Weight</option>
+          <option>Improve Fitness</option>
+          <option>Increase Strength</option>
+        </select>
+      </div>
+      <button class="btn-generate" type="submit" id="submitBtn">🚀 Generate My Monthly Plan</button>
+    </form>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Loader -->
+  <div class="loader-wrap" id="loader">
+    <div class="spinner"></div>
+    <p>Your AI coaches are building your personalised plan…</p>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics" id="metricsRow" style="display:none;">
+    <div class="metric">
+      <div class="label">Daily Protein</div>
+      <div class="value" id="metProtein">—</div>
+    </div>
+    <div class="metric">
+      <div class="label">Daily Water</div>
+      <div class="value" id="metWater">—</div>
+    </div>
+    <div class="metric">
+      <div class="label">Focus</div>
+      <div class="value" id="metStyle">—</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('workout', this)">🏋️ Workout Plan</button>
+      <button class="tab-btn" onclick="switchTab('nutrition', this)">🥗 Meal Plan</button>
+    </div>
+
+    <!-- Workout Tab -->
+    <div class="tab-content active" id="tab-workout">
+      <button class="btn-pdf" onclick="downloadPDF('workout')">⬇️ Download Workout Plan as PDF</button>
+      <div class="plan-body" id="workout-plan-body"></div>
+
+      <div class="qa-section">
+        <div class="qa-title">💬 Ask Your Fitness Coach</div>
+        <div class="chat-history" id="chat-workout"></div>
+        <div class="chat-input-row">
+          <input type="text" id="qa-input-workout" placeholder="e.g. Can I swap deadlifts for something easier on my back?" />
+          <button class="btn-ask" id="qa-btn-workout" onclick="askAgent('fitness')">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nutrition Tab -->
+    <div class="tab-content" id="tab-nutrition">
+      <button class="btn-pdf" onclick="downloadPDF('nutrition')">⬇️ Download Meal Plan as PDF</button>
+      <div class="plan-body" id="meal-plan-body"></div>
+
+      <div class="qa-section">
+        <div class="qa-title">💬 Ask Your Nutritionist</div>
+        <div class="chat-history" id="chat-nutrition"></div>
+        <div class="chat-input-row">
+          <input type="text" id="qa-input-nutrition" placeholder="e.g. What can I eat if I'm vegetarian?" />
+          <button class="btn-ask" id="qa-btn-nutrition" onclick="askAgent('nutrition')">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Print area (hidden, shown only when printing) -->
+  <div id="print-area"></div>
+
+  <script>
+    // Plan text stored here for Q&A context
+    let workoutRaw   = '';
+    let nutritionRaw = '';
+
+    /* ── Tab switching ── */
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    /* ── PDF download ── */
+    function downloadPDF(type) {
+      const contentEl = type === 'workout'
+        ? document.getElementById('workout-plan-body')
+        : document.getElementById('meal-plan-body');
+      const title = type === 'workout' ? '🏋️ My Monthly Workout Plan' : '🥗 My Meal Plan';
+      document.getElementById('print-area').innerHTML =
+        `<h1 style="margin-bottom:0.4rem">${title}</h1><hr style="margin-bottom:1.2rem">` + contentEl.innerHTML;
+      window.print();
+    }
+
+    /* ── Plan generation ── */
+    document.getElementById('planForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const weight       = parseFloat(document.getElementById('weight').value);
+      const age          = parseInt(document.getElementById('age').value);
+      const fitness_level = document.getElementById('fitness_level').value;
+      const location     = document.getElementById('location').value;
+      const workout_type = document.getElementById('workout_type').value;
+      const goal         = document.getElementById('goal').value;
+
+      // Reset
+      workoutRaw = '';
+      nutritionRaw = '';
+      const loadingHTML = `<div class="plan-loading"><div class="dot-spinner"></div><span class="loading-text">Generating</span></div>`;
+      document.getElementById('workout-plan-body').innerHTML = loadingHTML;
+      document.getElementById('meal-plan-body').innerHTML = loadingHTML;
+      document.getElementById('chat-workout').innerHTML = '';
+      document.getElementById('chat-nutrition').innerHTML = '';
+
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('metricsRow').style.display = 'flex';
+      document.getElementById('errorBox').style.display = 'none';
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+
+      // Pre-fill metrics
+      const pm = goal === 'Build Muscle' ? 2.2 : (goal === 'Lose Weight' ? 2.0 : 1.8);
+      document.getElementById('metProtein').textContent = Math.round(weight * pm) + 'g';
+      document.getElementById('metWater').textContent   = (weight * 0.037).toFixed(1) + 'L';
+      const goalStyle = {
+        'Build Muscle':      '💪 Hypertrophy',
+        'Lose Weight':       '🔥 Fat Burn',
+        'Improve Fitness':   '⚡ Conditioning',
+        'Increase Strength': '🏆 Strength',
+      };
+      document.getElementById('metStyle').textContent = goalStyle[goal] || goal;
+
+      try {
+        const resp = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weight, age, fitness_level, location, workout_type, goal }),
+        });
+        if (!resp.ok) throw new Error('Server error ' + resp.status);
+
+        const reader  = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let renderTimer  = null;
+        let buffer = '';
+
+        function scheduleRender() {
+          clearTimeout(renderTimer);
+          renderTimer = setTimeout(() => {
+            document.getElementById('workout-plan-body').innerHTML = marked.parse(workoutRaw);
+            document.getElementById('meal-plan-body').innerHTML    = marked.parse(nutritionRaw);
+          }, 150);
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            let ev;
+            try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+
+            if (ev.type === 'workout') {
+              workoutRaw += ev.chunk;
+              scheduleRender();
+            } else if (ev.type === 'nutrition') {
+              nutritionRaw += ev.chunk;
+              scheduleRender();
+            } else if (ev.type === 'done') {
+              clearTimeout(renderTimer);
+              document.getElementById('workout-plan-body').innerHTML = marked.parse(workoutRaw);
+              document.getElementById('meal-plan-body').innerHTML    = marked.parse(nutritionRaw);
+            }
+          }
+        }
+
+      } catch (err) {
+        document.getElementById('loader').style.display = 'none';
+        const box = document.getElementById('errorBox');
+        box.textContent = '❌ ' + err.message;
+        box.style.display = 'block';
+      } finally {
+        document.getElementById('submitBtn').disabled = false;
+      }
+    });
+
+    /* ── Q&A ── */
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function askAgent(type) {
+      const inputEl = document.getElementById(type === 'fitness' ? 'qa-input-workout'   : 'qa-input-nutrition');
+      const chatEl  = document.getElementById(type === 'fitness' ? 'chat-workout'        : 'chat-nutrition');
+      const btnEl   = document.getElementById(type === 'fitness' ? 'qa-btn-workout'      : 'qa-btn-nutrition');
+      const context = type === 'fitness' ? workoutRaw : nutritionRaw;
+
+      const question = inputEl.value.trim();
+      if (!question) return;
+
+      inputEl.value = '';
+      btnEl.disabled = true;
+
+      // User bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = 'msg user';
+      userBubble.textContent = question;
+      chatEl.appendChild(userBubble);
+
+      // Thinking bubble
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'msg assistant thinking';
+      aiBubble.textContent = 'Thinking…';
+      chatEl.appendChild(aiBubble);
+      chatEl.scrollTop = chatEl.scrollHeight;
+
+      try {
+        const resp = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, agent_type: type, context }),
+        });
+
+        const reader  = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let answerRaw = '';
+        let buffer    = '';
+        aiBubble.classList.remove('thinking');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            let ev;
+            try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+            if (ev.chunk) {
+              answerRaw += ev.chunk;
+              aiBubble.innerHTML = marked.parse(answerRaw);
+              chatEl.scrollTop = chatEl.scrollHeight;
+            }
+          }
+        }
+      } catch (err) {
+        aiBubble.textContent = '❌ ' + err.message;
+      } finally {
+        btnEl.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    /* ── Workout type card selection ── */
+    function selectWT(card) {
+      document.querySelectorAll('.wt-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('workout_type').value = card.dataset.value;
+    }
+
+    // Enter key to send Q&A
+    document.getElementById('qa-input-workout').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAgent('fitness'); }
+    });
+    document.getElementById('qa-input-nutrition').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAgent('nutrition'); }
+    });
+  </script>
+</body>
+</html>
