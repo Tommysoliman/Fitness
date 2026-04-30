@@ -47,7 +47,13 @@ LOSE WEIGHT — Shortcut to Shred 6-day split with after-set cardio:
   Day 1: Chest, Triceps, Abs (Multi-Joint) | Day 2: Shoulders, Legs, Calves (Multi-Joint) | Day 3: Back, Traps, Biceps (Multi-Joint)
   Day 4: Chest, Triceps, Abs (Single Joint) | Day 5: Shoulders, Legs, Calves (Single Joint) | Day 6: Back, Traps, Biceps (Single Joint)
   Progressive rep ranges: Week 1=9-11 | Week 2=6-8 | Week 3=12-15 | Week 4=16-20
-  NEVER recommend Deadlifts — replace with Romanian Deadlift or Leg Press."""
+  NEVER recommend Deadlifts — replace with Romanian Deadlift or Leg Press.
+
+RUNNING — 20-Week Marathon Training Plan (HOKA):
+  Phase 1 Weeks 1–8: Base Mileage — easy runs Tue/Wed/Thu, long run Sat, cross-train Sun.
+  Phase 2 Weeks 9–16: Speedwork and Tempo — 400m intervals at 5K pace, tempo runs, long runs up to 29 km with tempo segments.
+  Phase 3 Weeks 17–20: Peak and Taper — 32 km peak on Week 17, taper to race day Week 20.
+  All distances in km and metres. Always warm up and cool down 15 min before speedwork and tempo sessions."""
 
 NUTRITIONIST_SYSTEM = """You are a certified sports nutritionist with a PhD in Sports Science.
 Protein targets: Build Muscle 2.2g/kg | Lose Weight 2.0g/kg | Other 1.8g/kg
@@ -58,6 +64,8 @@ Output ONLY the meal plan sections — no BMR formulas, no calculation steps."""
 # ── Prompt builders ─────────────────────────────────────────────────────────
 
 def _workout_prompt(weight, age, height, fitness_level, location, workout_type, goal):
+    if workout_type == "Running":
+        return _running_prompt(weight, age, height, fitness_level, goal)
     if goal == "Lose Weight":
         return f"""Create a 4-WEEK cardio acceleration fat-loss workout plan for:
 Weight: {weight}kg | Height: {height}cm | Age: {age} | Level: {fitness_level} | Location: {location} | Goal: Lose Weight
@@ -159,6 +167,130 @@ Two columns: Animal-based | Plant-based (with g protein per 100g)
 3-5 recommendations for {goal}: name, dose, timing"""
 
 
+def _running_prompt(weight, age, height, fitness_level, goal):
+    level_note = {
+        "Beginner":     "Take walk breaks as needed. If any run feels too hard, reduce distance by 20%.",
+        "Intermediate": "Follow the plan as written. Trust the progressive overload.",
+        "Advanced":     "Add 4x20-second strides at the end of easy runs twice per week.",
+    }.get(fitness_level, "")
+
+    return f"""Output this EXACT 20-Week Marathon Training Plan formatted as markdown weekly tables.
+Runner: Weight {weight}kg | Height {height}cm | Age {age} | Level: {fitness_level} | Goal: {goal}
+Level note: {level_note}
+
+All distances are in kilometres and metres. Format every week exactly like this:
+
+## Week N — Phase Name
+
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| content | content | content | content | content | content | content |
+
+Output all 20 weeks with this exact data:
+
+## Week 1 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 5 km easy run | 5 km easy run | 5 km easy run | Rest | 6.5 km long run | Cross-training (swimming, cycling) |
+
+## Week 2 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 5 km easy run | 5 km easy run | 5 km easy run | Rest | 8 km long run | Cross-training |
+
+## Week 3 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 6.5 km easy run | 5 km easy run | 6.5 km easy run | Rest | 10 km long run | Cross-training |
+
+## Week 4 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 6.5 km easy run | 6.5 km easy run | 6.5 km easy run | Rest | 11 km long run | Cross-training |
+
+## Week 5 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 6.5 km easy run | 6.5 km easy run | 8 km easy run | Rest | 13 km long run | Cross-training |
+
+## Week 6 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | 6.5 km easy run | 8 km easy run | Rest | 14.5 km long run | Cross-training |
+
+## Week 7 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | 8 km easy run | 8 km easy run | Rest | 16 km long run | Cross-training |
+
+## Week 8 — Base Mileage
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | 8 km easy run | 10 km easy run | Rest | 18 km long run | Cross-training |
+
+## Week 9 — Speedwork Phase
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | Speedwork: 4x400m at 5K pace, 200m easy jog recovery | 8 km easy run | Rest | 19 km long run (2x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 10 km run |
+
+## Week 10 — Speedwork Phase
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 10 km easy run | Speedwork: 5x400m at 5K pace, 200m easy jog recovery | 10 km easy run | Rest | 21 km long run (2x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 10 km run |
+
+## Week 11 — Speedwork Phase
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 10 km easy run | Speedwork: 6x400m at 5K pace, 200m easy jog recovery | 10 km easy run | Rest | 22.5 km long run (3x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 11 km run |
+
+## Week 12 — Recovery Week
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | Tempo run: 5 km at tempo pace | 8 km easy run | Rest | 19 km long run | Cross-train or 11 km run |
+
+## Week 13 — Speedwork Phase
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 11 km easy run | Speedwork: 7x400m at 5K pace, 200m easy jog recovery | 11 km easy run | Rest | 26 km long run (3x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 13 km run |
+
+## Week 14 — Speedwork Phase
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 11 km easy run | Tempo run: 6.5 km at tempo pace | 11 km easy run | Rest | 27 km long run (4x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 13 km run |
+
+## Week 15 — Speedwork Phase
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 11 km easy run | Speedwork: 8x400m at 5K pace, 200m easy jog recovery | 11 km easy run | Rest | 29 km long run (3x5 km tempo intervals, 1.5 km recovery each) | Cross-train or 14.5 km run |
+
+## Week 16 — Recovery Week
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | Tempo run: 8 km at tempo pace | 8 km easy run | Rest | 19 km long run | Cross-train or 13 km run |
+
+## Week 17 — Peak Week
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 11 km easy run | Speedwork: 6x800m at 10K pace | 13 km easy run | Rest | 32 km long run (2x8 km tempo intervals, 1.5 km recovery each) | Cross-train or 14.5 km run |
+
+## Week 18 — Taper Begins
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 13 km easy run | Tempo run: 10 km at tempo pace | 13 km easy run | Rest | 19 km long run (2x5 km tempo intervals, 1.5 km recovery each) | Cross-train or 13 km run |
+
+## Week 19 — Taper
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 8 km easy run | 8 km easy run | 8 km easy run | Rest | 13 km long run | Cross-train or 8 km run |
+
+## Week 20 — Race Week
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Rest | 6.5 km easy run | 5 km easy run | 3 km easy run | Rest | RACE DAY (42.2 km) | Rest and recovery |
+
+After the tables, add a **Race Day Tips** section with 3 bullet points on pacing and preparation."""
+
+
 # ── Streaming generator ──────────────────────────────────────────────────────
 
 def stream_plans(weight, age, height, fitness_level, location, workout_type, goal):
@@ -167,13 +299,13 @@ def stream_plans(weight, age, height, fitness_level, location, workout_type, goa
     workout_q: queue.Queue = queue.Queue()
     nutrition_q: queue.Queue = queue.Queue()
 
-    def _stream(messages, out_q):
+    def _stream(messages, out_q, max_tokens=4000):
         try:
             resp = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
                 stream=True,
-                max_tokens=4000,
+                max_tokens=max_tokens,
                 temperature=0.7,
             )
             for chunk in resp:
@@ -185,10 +317,12 @@ def stream_plans(weight, age, height, fitness_level, location, workout_type, goa
         finally:
             out_q.put(None)  # sentinel
 
+    workout_max_tokens = 6000 if workout_type == "Running" else 4000
+
     t1 = threading.Thread(target=_stream, args=([
         {"role": "system", "content": COACH_SYSTEM},
         {"role": "user",   "content": _workout_prompt(weight, age, height, fitness_level, location, workout_type, goal)},
-    ], workout_q))
+    ], workout_q, workout_max_tokens))
 
     t2 = threading.Thread(target=_stream, args=([
         {"role": "system", "content": NUTRITIONIST_SYSTEM},
