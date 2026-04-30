@@ -41,9 +41,9 @@ GYM BUILD MUSCLE — Muscle & Strength 4-day split, 3 sets, 90 sec rest:
 
 BODYWEIGHT — push-ups, pull-ups, dips, squats, lunges, planks, burpees, mountain climbers.
 
-LOSE WEIGHT — Shortcut to Shred cardio acceleration 6-day split:
-  Replace ALL rest periods with 1 minute of cardio acceleration between every set.
-  Cardio options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
+LOSE WEIGHT — Shortcut to Shred 6-day split with after-set cardio:
+  Replace ALL rest periods with 1 minute of exercise after each set.
+  Exercise options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
   Day 1: Chest, Triceps, Abs (Multi-Joint) | Day 2: Shoulders, Legs, Calves (Multi-Joint) | Day 3: Back, Traps, Biceps (Multi-Joint)
   Day 4: Chest, Triceps, Abs (Single Joint) | Day 5: Shoulders, Legs, Calves (Single Joint) | Day 6: Back, Traps, Biceps (Single Joint)
   Progressive rep ranges: Week 1=9-11 | Week 2=6-8 | Week 3=12-15 | Week 4=16-20
@@ -62,8 +62,8 @@ def _workout_prompt(weight, age, fitness_level, location, workout_type, goal):
         return f"""Create a 4-WEEK cardio acceleration fat-loss workout plan for:
 Weight: {weight}kg | Age: {age} | Level: {fitness_level} | Location: {location} | Goal: Lose Weight
 
-CARDIO ACCELERATION RULE: Replace ALL rest periods with 1 minute of cardio acceleration between every single set.
-Cardio options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
+AFTER EACH SET RULE: Replace ALL rest periods with 1 minute of exercise after each set (no sitting rest).
+Exercise options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
 
 6 WORKOUTS PER WEEK:
   Day 1: Chest, Triceps, Abs (Multi-Joint)
@@ -83,11 +83,11 @@ OUTPUT FORMAT — follow this exact structure, no exceptions:
 
 ## Week 1
 
-> Between every set, replace rest with 1 minute of cardio acceleration.
+> After each set: 1 minute of cardio instead of resting.
 
 ### Day 1 — Chest, Triceps & Abs (Multi-Joint)
 
-| Exercise | Sets | Reps | Cardio Acceleration |
+| Exercise | Sets | Reps | After Each Set |
 |---|---|---|---|
 | Incline Barbell Bench Press | 3 | 9-11 | 1 min running in place |
 | Flat Dumbbell Bench Press | 3 | 9-11 | 1 min jump rope |

@@ -516,6 +516,7 @@
     // Plan text stored here for Q&A context
     let workoutRaw   = '';
     let nutritionRaw = '';
+    let currentController = null;
 
     /* ── Tab switching ── */
     function switchTab(name, btn) {
@@ -559,6 +560,8 @@
       document.getElementById('loader').style.display = 'none';
       document.getElementById('results').style.display = 'block';
       document.getElementById('errorBox').style.display = 'none';
+      if (currentController) currentController.abort();
+      currentController = new AbortController();
       document.getElementById('submitBtn').disabled = true;
       document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
@@ -570,6 +573,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ weight, age, fitness_level, location, workout_type, goal }),
+          signal: currentController.signal,
         });
         if (!resp.ok) throw new Error('Server error ' + resp.status);
 
@@ -613,11 +617,19 @@
         }
 
       } catch (err) {
-        document.getElementById('loader').style.display = 'none';
-        const box = document.getElementById('errorBox');
-        box.textContent = '❌ ' + err.message;
-        box.style.display = 'block';
+        if (err.name === 'AbortError') {
+          ['workout-plan-body', 'meal-plan-body'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el.querySelector('.plan-loading')) el.innerHTML = '';
+          });
+        } else {
+          document.getElementById('loader').style.display = 'none';
+          const box = document.getElementById('errorBox');
+          box.textContent = '❌ ' + err.message;
+          box.style.display = 'block';
+        }
       } finally {
+        currentController = null;
         document.getElementById('submitBtn').disabled = false;
       }
     });
@@ -757,6 +769,7 @@
       document.querySelectorAll('.wt-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       document.getElementById('workout_type').value = card.dataset.value;
+      onProfileChange();
     }
 
     /* ── Live metrics update ── */
@@ -781,12 +794,21 @@
       document.getElementById('metricsRow').style.display = 'flex';
     }
 
+    function onProfileChange() {
+      updateMetrics();
+      if (currentController) {
+        currentController.abort();
+        currentController = null;
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
     // Show metrics on page load and update on any form change
     updateMetrics();
     ['weight', 'age', 'fitness_level', 'location', 'goal'].forEach(id => {
       const el = document.getElementById(id);
-      el.addEventListener('input', updateMetrics);
-      el.addEventListener('change', updateMetrics);
+      el.addEventListener('input', onProfileChange);
+      el.addEventListener('change', onProfileChange);
       el.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); document.getElementById('planForm').requestSubmit(); }
       });
