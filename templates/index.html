@@ -369,11 +369,15 @@
       <div class="grid-2">
         <div class="field">
           <label>Weight (kg)</label>
-          <input type="number" id="weight" value="75" min="40" max="250" required />
+          <input type="number" id="weight" min="40" max="250" required placeholder="Please enter your Weight" />
         </div>
         <div class="field">
           <label>Age</label>
-          <input type="number" id="age" value="28" min="16" max="80" required />
+          <input type="number" id="age" min="16" max="80" required placeholder="Please enter your Age" />
+        </div>
+        <div class="field">
+          <label>Height (cm)</label>
+          <input type="number" id="height" min="100" max="250" required placeholder="Please enter your Height" />
         </div>
         <div class="field">
           <label>Fitness Level</label>
@@ -543,6 +547,7 @@
 
       const weight       = parseFloat(document.getElementById('weight').value);
       const age          = parseInt(document.getElementById('age').value);
+      const height       = parseInt(document.getElementById('height').value) || 175;
       const fitness_level = document.getElementById('fitness_level').value;
       const location     = document.getElementById('location').value;
       const workout_type = document.getElementById('workout_type').value;
@@ -572,7 +577,7 @@
         const resp = await fetch('/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weight, age, fitness_level, location, workout_type, goal }),
+          body: JSON.stringify({ weight, age, height, fitness_level, location, workout_type, goal }),
           signal: currentController.signal,
         });
         if (!resp.ok) throw new Error('Server error ' + resp.status);
@@ -805,7 +810,7 @@
 
     // Show metrics on page load and update on any form change
     updateMetrics();
-    ['weight', 'age', 'fitness_level', 'location', 'goal'].forEach(id => {
+    ['weight', 'age', 'height', 'fitness_level', 'location', 'goal'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('input', onProfileChange);
       el.addEventListener('change', onProfileChange);

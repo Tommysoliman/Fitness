@@ -27,13 +27,14 @@ def generate():
 
     weight        = float(data.get("weight", 75))
     age           = int(data.get("age", 28))
+    height        = int(data.get("height", 175))
     fitness_level = data.get("fitness_level", "Intermediate")
     location      = data.get("location", "Gym")
     workout_type  = data.get("workout_type", "Weights")
     goal          = data.get("goal", "Build Muscle")
 
     def event_stream():
-        yield from stream_plans(weight, age, fitness_level, location, workout_type, goal)
+        yield from stream_plans(weight, age, height, fitness_level, location, workout_type, goal)
 
     return Response(
         stream_with_context(event_stream()),

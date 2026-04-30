@@ -57,10 +57,10 @@ Output ONLY the meal plan sections — no BMR formulas, no calculation steps."""
 
 # ── Prompt builders ─────────────────────────────────────────────────────────
 
-def _workout_prompt(weight, age, fitness_level, location, workout_type, goal):
+def _workout_prompt(weight, age, height, fitness_level, location, workout_type, goal):
     if goal == "Lose Weight":
         return f"""Create a 4-WEEK cardio acceleration fat-loss workout plan for:
-Weight: {weight}kg | Age: {age} | Level: {fitness_level} | Location: {location} | Goal: Lose Weight
+Weight: {weight}kg | Height: {height}cm | Age: {age} | Level: {fitness_level} | Location: {location} | Goal: Lose Weight
 
 AFTER EACH SET RULE: Replace ALL rest periods with 1 minute of exercise after each set (no sitting rest).
 Exercise options (vary each session): running in place, jump rope, squat jumps, mountain climbers, burpees, lunge jumps, box jumps, jumping jacks.
@@ -110,7 +110,7 @@ RULES: NEVER recommend Deadlifts — replace with Romanian Deadlift or Leg Press
         style = "Bodyweight circuit: push-ups, pull-ups, squats, lunges, planks, burpees."
 
     return f"""Create a 4-WEEK workout plan for:
-Weight: {weight}kg | Age: {age} | Level: {fitness_level} | Location: {location} | Type: {workout_type} | Goal: {goal}
+Weight: {weight}kg | Height: {height}cm | Age: {age} | Level: {fitness_level} | Location: {location} | Type: {workout_type} | Goal: {goal}
 
 Style: {style}
 
@@ -135,12 +135,12 @@ Continue this EXACT pattern for all 4 weeks and all days.
 RULES: NEVER recommend Deadlifts — replace with Romanian Deadlift or Leg Press instead. Never use the word "hypertrophy" — use "Build Muscle" instead. Never use *, +, ^ symbols. Never write "drop set". Plain English only. Every day MUST have a Markdown table."""
 
 
-def _nutrition_prompt(weight, age, fitness_level, workout_type, goal):
+def _nutrition_prompt(weight, age, height, fitness_level, workout_type, goal):
     pm = 2.2 if goal == "Build Muscle" else (2.0 if goal == "Lose Weight" else 1.8)
     protein_g = round(weight * pm)
     water_l = round(weight * 0.037, 1)
 
-    return f"""Create a meal plan for: Weight {weight}kg | Age {age} | Goal: {goal} | Workout: {workout_type}
+    return f"""Create a meal plan for: Weight {weight}kg | Height {height}cm | Age {age} | Goal: {goal} | Workout: {workout_type}
 Targets: Protein {protein_g}g/day | Water {water_l}L/day
 
 Output ONLY these sections (no intro paragraph, start immediately with the first heading):
@@ -161,7 +161,7 @@ Two columns: Animal-based | Plant-based (with g protein per 100g)
 
 # ── Streaming generator ──────────────────────────────────────────────────────
 
-def stream_plans(weight, age, fitness_level, location, workout_type, goal):
+def stream_plans(weight, age, height, fitness_level, location, workout_type, goal):
     """Yields SSE lines, interleaving workout and nutrition chunks in real time."""
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     workout_q: queue.Queue = queue.Queue()
@@ -187,12 +187,12 @@ def stream_plans(weight, age, fitness_level, location, workout_type, goal):
 
     t1 = threading.Thread(target=_stream, args=([
         {"role": "system", "content": COACH_SYSTEM},
-        {"role": "user",   "content": _workout_prompt(weight, age, fitness_level, location, workout_type, goal)},
+        {"role": "user",   "content": _workout_prompt(weight, age, height, fitness_level, location, workout_type, goal)},
     ], workout_q))
 
     t2 = threading.Thread(target=_stream, args=([
         {"role": "system", "content": NUTRITIONIST_SYSTEM},
-        {"role": "user",   "content": _nutrition_prompt(weight, age, fitness_level, workout_type, goal)},
+        {"role": "user",   "content": _nutrition_prompt(weight, age, height, fitness_level, workout_type, goal)},
     ], nutrition_q))
 
     t1.start()
