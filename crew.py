@@ -169,16 +169,54 @@ Two columns: Animal-based | Plant-based (with g protein per 100g)
 
 def _running_prompt(weight, age, height, fitness_level, goal):
     level_note = {
-        "Beginner":     "Take walk breaks as needed. If any run feels too hard, reduce distance by 20%.",
+        "Beginner":     "Take walk breaks as needed. Reduce distance by 20% if too hard.",
         "Intermediate": "Follow the plan as written. Trust the progressive overload.",
         "Advanced":     "Add 4x20-second strides at the end of easy runs twice per week.",
     }.get(fitness_level, "")
 
-    return f"""Output this EXACT 20-Week Marathon Training Plan formatted as markdown weekly tables.
-Runner: Weight {weight}kg | Height {height}cm | Age {age} | Level: {fitness_level} | Goal: {goal}
+    race_configs = {
+        "5km": {
+            "weeks": 8,
+            "race": "5K (5 km)",
+            "peak_long": "8 km",
+            "phases": (
+                "Phase 1 Weeks 1-4: Base Building — 3 easy runs per week (4-6 km each) plus a long run (up to 8 km). "
+                "Phase 2 Weeks 5-7: Speed Development — add 400m intervals at 5K pace and tempo runs. "
+                "Week 8: Taper and race day."
+            ),
+        },
+        "10km": {
+            "weeks": 10,
+            "race": "10K (10 km)",
+            "peak_long": "14 km",
+            "phases": (
+                "Phase 1 Weeks 1-4: Base Building — 3-4 easy runs per week (5-8 km each) plus a long run. "
+                "Phase 2 Weeks 5-8: Speedwork — 400m and 800m intervals at 5K-10K pace, tempo runs, long run up to 14 km. "
+                "Weeks 9-10: Taper and race day."
+            ),
+        },
+        "21km": {
+            "weeks": 16,
+            "race": "Half Marathon (21.1 km)",
+            "peak_long": "19 km",
+            "phases": (
+                "Phase 1 Weeks 1-6: Base Mileage — easy runs + long run building to 13 km. "
+                "Phase 2 Weeks 7-13: Speedwork and Tempo — 400m intervals, tempo runs, long runs up to 19 km with tempo segments. "
+                "Weeks 14-16: Taper and race day."
+            ),
+        },
+    }
+
+    cfg = race_configs.get(goal, race_configs["21km"])
+
+    return f"""Create a {cfg['weeks']}-week training plan for a {cfg['race']}.
+Runner: Weight {weight}kg | Height {height}cm | Age {age} | Level: {fitness_level}
 Level note: {level_note}
 
-All distances are in kilometres and metres. Format every week exactly like this:
+Plan structure: {cfg['phases']}
+Peak long run: {cfg['peak_long']}
+
+ALL distances in km and metres. Format every week as a markdown table — no exceptions:
 
 ## Week N — Phase Name
 
@@ -186,109 +224,14 @@ All distances are in kilometres and metres. Format every week exactly like this:
 |--------|---------|-----------|----------|--------|----------|--------|
 | content | content | content | content | content | content | content |
 
-Output all 20 weeks with this exact data:
+Rules:
+- Easy runs should be conversational pace
+- Warm up and cool down 10-15 min for all speedwork and tempo sessions
+- Every 4th week is a recovery week with reduced distance
+- Final week ends with RACE DAY on Saturday and Rest on Sunday
+- After all weeks add a **Race Day Tips** section with 3 bullet points
 
-## Week 1 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 5 km easy run | 5 km easy run | 5 km easy run | Rest | 6.5 km long run | Cross-training (swimming, cycling) |
-
-## Week 2 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 5 km easy run | 5 km easy run | 5 km easy run | Rest | 8 km long run | Cross-training |
-
-## Week 3 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 6.5 km easy run | 5 km easy run | 6.5 km easy run | Rest | 10 km long run | Cross-training |
-
-## Week 4 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 6.5 km easy run | 6.5 km easy run | 6.5 km easy run | Rest | 11 km long run | Cross-training |
-
-## Week 5 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 6.5 km easy run | 6.5 km easy run | 8 km easy run | Rest | 13 km long run | Cross-training |
-
-## Week 6 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | 6.5 km easy run | 8 km easy run | Rest | 14.5 km long run | Cross-training |
-
-## Week 7 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | 8 km easy run | 8 km easy run | Rest | 16 km long run | Cross-training |
-
-## Week 8 — Base Mileage
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | 8 km easy run | 10 km easy run | Rest | 18 km long run | Cross-training |
-
-## Week 9 — Speedwork Phase
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | Speedwork: 4x400m at 5K pace, 200m easy jog recovery | 8 km easy run | Rest | 19 km long run (2x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 10 km run |
-
-## Week 10 — Speedwork Phase
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 10 km easy run | Speedwork: 5x400m at 5K pace, 200m easy jog recovery | 10 km easy run | Rest | 21 km long run (2x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 10 km run |
-
-## Week 11 — Speedwork Phase
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 10 km easy run | Speedwork: 6x400m at 5K pace, 200m easy jog recovery | 10 km easy run | Rest | 22.5 km long run (3x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 11 km run |
-
-## Week 12 — Recovery Week
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | Tempo run: 5 km at tempo pace | 8 km easy run | Rest | 19 km long run | Cross-train or 11 km run |
-
-## Week 13 — Speedwork Phase
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 11 km easy run | Speedwork: 7x400m at 5K pace, 200m easy jog recovery | 11 km easy run | Rest | 26 km long run (3x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 13 km run |
-
-## Week 14 — Speedwork Phase
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 11 km easy run | Tempo run: 6.5 km at tempo pace | 11 km easy run | Rest | 27 km long run (4x3 km tempo intervals, 1.5 km recovery each) | Cross-train or 13 km run |
-
-## Week 15 — Speedwork Phase
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 11 km easy run | Speedwork: 8x400m at 5K pace, 200m easy jog recovery | 11 km easy run | Rest | 29 km long run (3x5 km tempo intervals, 1.5 km recovery each) | Cross-train or 14.5 km run |
-
-## Week 16 — Recovery Week
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | Tempo run: 8 km at tempo pace | 8 km easy run | Rest | 19 km long run | Cross-train or 13 km run |
-
-## Week 17 — Peak Week
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 11 km easy run | Speedwork: 6x800m at 10K pace | 13 km easy run | Rest | 32 km long run (2x8 km tempo intervals, 1.5 km recovery each) | Cross-train or 14.5 km run |
-
-## Week 18 — Taper Begins
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 13 km easy run | Tempo run: 10 km at tempo pace | 13 km easy run | Rest | 19 km long run (2x5 km tempo intervals, 1.5 km recovery each) | Cross-train or 13 km run |
-
-## Week 19 — Taper
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 8 km easy run | 8 km easy run | 8 km easy run | Rest | 13 km long run | Cross-train or 8 km run |
-
-## Week 20 — Race Week
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Rest | 6.5 km easy run | 5 km easy run | 3 km easy run | Rest | RACE DAY (42.2 km) | Rest and recovery |
-
-After the tables, add a **Race Day Tips** section with 3 bullet points on pacing and preparation."""
+Output all {cfg['weeks']} weeks now."""
 
 
 # ── Streaming generator ──────────────────────────────────────────────────────

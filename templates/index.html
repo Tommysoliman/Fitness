@@ -774,29 +774,50 @@
       document.querySelectorAll('.wt-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       document.getElementById('workout_type').value = card.dataset.value;
+
+      const goalSelect = document.getElementById('goal');
+      if (card.dataset.value === 'Running') {
+        goalSelect.innerHTML =
+          '<option>5km</option><option>10km</option><option selected>21km</option>';
+      } else {
+        goalSelect.innerHTML =
+          '<option>Build Muscle</option><option>Lose Weight</option><option>Improve Fitness</option><option>Increase Strength</option>';
+      }
+
       onProfileChange();
     }
 
     /* ── Live metrics update ── */
     function updateMetrics() {
-      const weight = parseFloat(document.getElementById('weight').value) || 75;
-      const goal   = document.getElementById('goal').value;
-      const pm     = goal === 'Build Muscle' ? 2.2 : (goal === 'Lose Weight' ? 2.0 : 1.8);
-      const kcal   = goal === 'Build Muscle' ? Math.round(weight * 33) + 400
-                   : goal === 'Lose Weight'  ? Math.round(weight * 33) - 500
-                   : Math.round(weight * 33);
-      const goalStyle = {
-        'Build Muscle':      '💪 Build Muscle',
-        'Lose Weight':       '🔥 Fat Burn',
-        'Improve Fitness':   '⚡ Conditioning',
-        'Increase Strength': '🏆 Strength',
-      };
-      document.getElementById('metProtein').textContent = Math.round(weight * pm) + 'g';
-      document.getElementById('metWater').textContent   = (weight * 0.037).toFixed(1) + 'L';
-      document.getElementById('metStyle').textContent   = goalStyle[goal] || goal;
+      const weight      = parseFloat(document.getElementById('weight').value) || 75;
+      const goal        = document.getElementById('goal').value;
+      const workoutType = document.getElementById('workout_type').value;
+
+      let pm, kcal, goalLabel;
+
+      if (workoutType === 'Running') {
+        pm    = 1.8;
+        kcal  = Math.round(weight * 33);
+        goalLabel = { '5km': '🏃 5K Race', '10km': '🏃 10K Race', '21km': '🏃 Half Marathon' }[goal] || goal;
+      } else {
+        pm    = goal === 'Build Muscle' ? 2.2 : (goal === 'Lose Weight' ? 2.0 : 1.8);
+        kcal  = goal === 'Build Muscle' ? Math.round(weight * 33) + 400
+              : goal === 'Lose Weight'  ? Math.round(weight * 33) - 500
+              : Math.round(weight * 33);
+        goalLabel = {
+          'Build Muscle':      '💪 Build Muscle',
+          'Lose Weight':       '🔥 Fat Burn',
+          'Improve Fitness':   '⚡ Conditioning',
+          'Increase Strength': '🏆 Strength',
+        }[goal] || goal;
+      }
+
+      document.getElementById('metProtein').textContent    = Math.round(weight * pm) + 'g';
+      document.getElementById('metWater').textContent      = (weight * 0.037).toFixed(1) + 'L';
+      document.getElementById('metStyle').textContent      = goalLabel;
       document.getElementById('caloriesValue').textContent = kcal + ' kcal';
       document.getElementById('caloriesDisplay').style.display = 'block';
-      document.getElementById('metricsRow').style.display = 'flex';
+      document.getElementById('metricsRow').style.display  = 'flex';
     }
 
     function onProfileChange() {
