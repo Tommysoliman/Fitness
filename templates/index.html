@@ -369,15 +369,15 @@
       <div class="grid-2">
         <div class="field">
           <label>Weight (kg)</label>
-          <input type="number" id="weight" min="40" max="250" required placeholder="Please enter your Weight" />
+          <input type="number" id="weight" value="75" min="40" max="250" required placeholder="Please enter your Weight" />
         </div>
         <div class="field">
           <label>Age</label>
-          <input type="number" id="age" min="16" max="80" required placeholder="Please enter your Age" />
+          <input type="number" id="age" value="25" min="16" max="80" required placeholder="Please enter your Age" />
         </div>
         <div class="field">
           <label>Height (cm)</label>
-          <input type="number" id="height" min="100" max="250" required placeholder="Please enter your Height" />
+          <input type="number" id="height" value="175" min="100" max="250" required placeholder="Please enter your Height" />
         </div>
         <div class="field">
           <label>Fitness Level</label>
@@ -778,7 +778,7 @@
       const goalSelect = document.getElementById('goal');
       if (card.dataset.value === 'Running') {
         goalSelect.innerHTML =
-          '<option>5km</option><option>10km</option><option selected>21km</option>';
+          '<option selected>5km</option><option>10km</option><option>21km</option>';
       } else {
         goalSelect.innerHTML =
           '<option>Build Muscle</option><option>Lose Weight</option><option>Improve Fitness</option><option>Increase Strength</option>';
