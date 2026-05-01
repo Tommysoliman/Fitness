@@ -548,28 +548,39 @@
       doc.open();
       doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
         *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;background:#fff;width:720px;padding:0;}
-        .brand{color:#7c3aed;font-size:1rem;font-weight:700;margin-bottom:3px;}
-        .plan-title{color:#111;font-size:1.35rem;font-weight:700;margin-bottom:8px;}
-        .divider{border:none;border-top:2px solid #ddd6fe;margin-bottom:16px;}
-        h1{color:#7c3aed;font-size:1.2rem;margin:14px 0 5px;}
-        h2{color:#7c3aed;font-size:1.1rem;margin:16px 0 5px;border-top:1px solid #ddd6fe;padding-top:10px;}
-        h2:first-of-type{border-top:none;padding-top:0;margin-top:0;}
-        h3{color:#6d28d9;margin:12px 0 4px;}
-        h4{color:#5b21b6;margin:8px 0 3px;}
-        p{color:#374151;line-height:1.65;margin-bottom:6px;}
-        li{color:#374151;line-height:1.6;}
-        ul,ol{padding-left:1.3rem;margin:5px 0;}
-        strong{color:#111;}
-        code{color:#7c3aed;background:#faf5ff;padding:1px 4px;border-radius:3px;font-size:0.88em;}
-        table{width:100%;border-collapse:collapse;margin:10px 0;font-size:10pt;}
-        th{background:#f3e8ff;color:#1a1a1a;padding:6px 9px;text-align:left;border:1px solid #d8b4fe;}
-        td{color:#374151;padding:5px 9px;border:1px solid #ede9fe;}
-        hr{border:none;border-top:1px solid #ddd6fe;margin:10px 0;}
+        body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#000;background:#fff;width:720px;padding:0;}
+
+        /* ── Header ── */
+        .pdf-header{background:#1a1a2e;color:#fff;padding:18px 22px 14px;margin-bottom:20px;}
+        .pdf-header .brand{font-size:0.85rem;color:#a78bfa;letter-spacing:0.04em;margin-bottom:4px;}
+        .pdf-header .plan-title{font-size:1.4rem;font-weight:700;color:#fff;}
+
+        /* ── Headings ── */
+        h1,h2{font-size:1rem;font-weight:700;color:#fff;background:#1a1a2e;
+              padding:7px 12px;margin:18px 0 0;text-transform:uppercase;letter-spacing:0.05em;}
+        h3{font-size:0.97rem;font-weight:700;color:#000;margin:14px 0 4px;border-left:3px solid #1a1a2e;padding-left:8px;}
+        h4{font-size:0.93rem;font-weight:700;color:#000;margin:10px 0 3px;}
+
+        /* ── Body text ── */
+        p{color:#000;line-height:1.6;margin:5px 0 8px;}
+        li{color:#000;line-height:1.6;margin-bottom:3px;}
+        ul,ol{padding-left:1.4rem;margin:4px 0 8px;}
+        strong{color:#000;font-weight:700;}
+        hr{border:none;border-top:1px solid #ccc;margin:12px 0;}
+        code{color:#000;background:#f0f0f0;padding:1px 4px;border-radius:2px;font-size:0.88em;}
+
+        /* ── Tables ── */
+        table{width:100%;border-collapse:collapse;margin:10px 0 14px;font-size:10pt;}
+        thead tr{background:#1a1a2e;}
+        th{color:#fff;font-weight:700;padding:8px 10px;text-align:left;border:1px solid #1a1a2e;}
+        tbody tr:nth-child(even){background:#f5f5f5;}
+        tbody tr:nth-child(odd){background:#fff;}
+        td{color:#000;padding:7px 10px;border:1px solid #ccc;vertical-align:top;}
       </style></head><body>
-        <div class="brand">Tommy's workout - let's get fit together 💪</div>
-        <div class="plan-title">${title}</div>
-        <hr class="divider">
+        <div class="pdf-header">
+          <div class="brand">Tommy's workout — let's get fit together 💪</div>
+          <div class="plan-title">${title}</div>
+        </div>
         ${marked.parse(raw)}
       </body></html>`);
       doc.close();
