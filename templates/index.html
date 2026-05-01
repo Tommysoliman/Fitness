@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Fitness & Nutrition Planner</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -532,13 +533,42 @@
 
     /* ── PDF download ── */
     function downloadPDF(type) {
-      const contentEl = type === 'workout'
-        ? document.getElementById('workout-plan-body')
-        : document.getElementById('meal-plan-body');
-      const title = type === 'workout' ? '🏋️ My Monthly Workout Plan' : '🥗 My Meal Plan';
-      document.getElementById('print-area').innerHTML =
-        `<h1 style="margin-bottom:0.4rem">${title}</h1><hr style="margin-bottom:1.2rem">` + contentEl.innerHTML;
-      window.print();
+      const raw = type === 'workout' ? workoutRaw : nutritionRaw;
+      if (!raw) { alert('Generate a plan first, then download.'); return; }
+
+      const title    = type === 'workout' ? 'My Monthly Workout Plan' : 'My Meal Plan';
+      const filename = type === 'workout' ? 'workout-plan.pdf' : 'meal-plan.pdf';
+
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <style>
+          body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #111; }
+          h1 { color: #7c3aed; font-size: 1.5rem; margin: 0 0 6px 0; }
+          h2 { color: #7c3aed; font-size: 1.15rem; margin: 18px 0 6px; border-top: 1px solid #ddd6fe; padding-top: 10px; }
+          h2:first-of-type { border-top: none; padding-top: 0; }
+          h3 { color: #6d28d9; font-size: 1rem; margin: 12px 0 4px; }
+          h4 { color: #5b21b6; margin: 8px 0 3px; }
+          p, li { color: #374151; line-height: 1.6; }
+          strong { color: #111; }
+          code { color: #7c3aed; background: #faf5ff; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+          th { background: #f3e8ff; color: #1a1a1a; padding: 6px 9px; text-align: left; border: 1px solid #d8b4fe; }
+          td { padding: 5px 9px; border: 1px solid #ede9fe; color: #374151; }
+          hr { border: none; border-top: 2px solid #ddd6fe; margin: 12px 0; }
+          ul, ol { padding-left: 1.3rem; margin: 6px 0; }
+        </style>
+        <h1>${title}</h1>
+        <hr>
+        ${marked.parse(raw)}
+      `;
+
+      html2pdf().set({
+        margin:      0.75,
+        filename:    filename,
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+        jsPDF:       { unit: 'in', format: 'a4', orientation: 'portrait' },
+      }).from(container).save();
     }
 
     /* ── Plan generation ── */
@@ -586,13 +616,20 @@
         const decoder = new TextDecoder();
         let renderTimer  = null;
         let buffer = '';
+        const banner = `<div class="plan-loading" style="margin-bottom:1rem;"><div class="dot-spinner"></div><span class="loading-text">Generating</span></div>`;
 
         function scheduleRender() {
           clearTimeout(renderTimer);
           renderTimer = setTimeout(() => {
-            document.getElementById('workout-plan-body').innerHTML = marked.parse(workoutRaw);
-            document.getElementById('meal-plan-body').innerHTML    = marked.parse(nutritionRaw);
+            document.getElementById('workout-plan-body').innerHTML = banner + (workoutRaw ? marked.parse(workoutRaw) : '');
+            document.getElementById('meal-plan-body').innerHTML    = banner + (nutritionRaw ? marked.parse(nutritionRaw) : '');
           }, 150);
+        }
+
+        function finalRender() {
+          clearTimeout(renderTimer);
+          document.getElementById('workout-plan-body').innerHTML = marked.parse(workoutRaw);
+          document.getElementById('meal-plan-body').innerHTML    = marked.parse(nutritionRaw);
         }
 
         while (true) {
@@ -614,12 +651,11 @@
               nutritionRaw += ev.chunk;
               scheduleRender();
             } else if (ev.type === 'done') {
-              clearTimeout(renderTimer);
-              document.getElementById('workout-plan-body').innerHTML = marked.parse(workoutRaw);
-              document.getElementById('meal-plan-body').innerHTML    = marked.parse(nutritionRaw);
+              finalRender();
             }
           }
         }
+        finalRender();
 
       } catch (err) {
         if (err.name === 'AbortError') {
@@ -750,13 +786,17 @@
             if (ev.chunk) {
               targetRaw += ev.chunk;
               clearTimeout(renderTimer);
-              renderTimer = setTimeout(() => { bodyEl.innerHTML = marked.parse(targetRaw); }, 150);
+              renderTimer = setTimeout(() => {
+                bodyEl.innerHTML = `<div class="plan-loading" style="margin-bottom:1rem;"><div class="dot-spinner"></div><span class="loading-text">Generating ${bodyPart} workout</span></div>` + marked.parse(targetRaw);
+              }, 150);
             } else if (ev.type === 'done') {
               clearTimeout(renderTimer);
               bodyEl.innerHTML = marked.parse(targetRaw);
             }
           }
         }
+        clearTimeout(renderTimer);
+        if (targetRaw) bodyEl.innerHTML = marked.parse(targetRaw);
       } catch (err) {
         bodyEl.textContent = '❌ ' + err.message;
       } finally {
