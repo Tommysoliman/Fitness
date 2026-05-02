@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Fitness & Nutrition Planner</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -531,69 +532,150 @@
       btn.classList.add('active');
     }
 
-    /* ── PDF download ── */
+    /* ── PDF download (pdfmake — real typeset PDF, not a screenshot) ── */
     function downloadPDF(type) {
       const raw = type === 'workout' ? workoutRaw : nutritionRaw;
       if (!raw) { alert('Generate a plan first, then download.'); return; }
 
-      const title    = type === 'workout' ? 'My Monthly Workout Plan' : 'My Meal Plan';
-      const filename = type === 'workout' ? 'workout-plan.pdf' : 'meal-plan.pdf';
+      const planTitle = type === 'workout' ? 'My Monthly Workout Plan' : 'My Meal Plan';
+      const filename  = type === 'workout' ? 'workout-plan.pdf' : 'meal-plan.pdf';
 
-      // Render into a hidden iframe so the page's dark CSS never touches it
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:780px;height:1px;border:none;';
-      document.body.appendChild(iframe);
+      // Strip leftover markdown syntax to plain text
+      function strip(t) {
+        return (t || '').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
+                        .replace(/`(.+?)`/g,'$1').replace(/\[(.+?)\]\(.+?\)/g,'$1').trim();
+      }
 
-      const doc = iframe.contentDocument;
-      doc.open();
-      doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#000;background:#fff;width:720px;padding:0;}
+      // Convert **bold** spans to pdfmake inline node array
+      function inline(t) {
+        t = (t || '').replace(/\n/g,' ');
+        const nodes = [];
+        const re = /\*\*(.+?)\*\*/g;
+        let last = 0, m;
+        while ((m = re.exec(t)) !== null) {
+          if (m.index > last) nodes.push(t.slice(last, m.index));
+          nodes.push({ text: m[1], bold: true });
+          last = m.index + m[0].length;
+        }
+        if (last < t.length) nodes.push(t.slice(last));
+        return nodes.length === 1 && typeof nodes[0] === 'string' ? nodes[0] : (nodes.length ? nodes : '');
+      }
 
-        /* ── Header ── */
-        .pdf-header{background:#1a1a2e;color:#fff;padding:18px 22px 14px;margin-bottom:20px;}
-        .pdf-header .brand{font-size:0.85rem;color:#a78bfa;letter-spacing:0.04em;margin-bottom:4px;}
-        .pdf-header .plan-title{font-size:1.4rem;font-weight:700;color:#fff;}
+      // ── Section heading block (dark banner) ──
+      function sectionBanner(text) {
+        return {
+          table: { widths: ['*'], body: [[{
+            text: strip(text).toUpperCase(),
+            color: '#ffffff', fillColor: '#1a1a2e',
+            bold: true, fontSize: 10, characterSpacing: 0.8
+          }]] },
+          layout: {
+            hLineWidth: () => 0, vLineWidth: () => 0,
+            paddingLeft: () => 12, paddingRight: () => 12,
+            paddingTop: () => 8,  paddingBottom: () => 8
+          },
+          margin: [0, 16, 0, 6]
+        };
+      }
 
-        /* ── Headings ── */
-        h1,h2{font-size:1rem;font-weight:700;color:#fff;background:#1a1a2e;
-              padding:7px 12px;margin:18px 0 0;text-transform:uppercase;letter-spacing:0.05em;}
-        h3{font-size:0.97rem;font-weight:700;color:#000;margin:14px 0 4px;border-left:3px solid #1a1a2e;padding-left:8px;}
-        h4{font-size:0.93rem;font-weight:700;color:#000;margin:10px 0 3px;}
+      const tokens = marked.lexer(raw);
+      const body   = [];
 
-        /* ── Body text ── */
-        p{color:#000;line-height:1.6;margin:5px 0 8px;}
-        li{color:#000;line-height:1.6;margin-bottom:3px;}
-        ul,ol{padding-left:1.4rem;margin:4px 0 8px;}
-        strong{color:#000;font-weight:700;}
-        hr{border:none;border-top:1px solid #ccc;margin:12px 0;}
-        code{color:#000;background:#f0f0f0;padding:1px 4px;border-radius:2px;font-size:0.88em;}
+      // ── Cover header ──
+      body.push({
+        table: { widths: ['*'], body: [[{
+          stack: [
+            { text: "Tommy's workout — let's get fit together 💪", fontSize: 9, color: '#a78bfa' },
+            { text: planTitle, fontSize: 18, bold: true, color: '#ffffff', margin: [0, 6, 0, 0] }
+          ],
+          fillColor: '#1a1a2e'
+        }]] },
+        layout: {
+          hLineWidth: () => 0, vLineWidth: () => 0,
+          paddingLeft: () => 18, paddingRight: () => 18,
+          paddingTop: () => 16, paddingBottom: () => 16
+        },
+        margin: [0, 0, 0, 20]
+      });
 
-        /* ── Tables ── */
-        table{width:100%;border-collapse:collapse;margin:10px 0 14px;font-size:10pt;}
-        thead tr{background:#1a1a2e;}
-        th{color:#fff;font-weight:700;padding:8px 10px;text-align:left;border:1px solid #1a1a2e;}
-        tbody tr:nth-child(even){background:#f5f5f5;}
-        tbody tr:nth-child(odd){background:#fff;}
-        td{color:#000;padding:7px 10px;border:1px solid #ccc;vertical-align:top;}
-      </style></head><body>
-        <div class="pdf-header">
-          <div class="brand">Tommy's workout — let's get fit together 💪</div>
-          <div class="plan-title">${title}</div>
-        </div>
-        ${marked.parse(raw)}
-      </body></html>`);
-      doc.close();
+      for (const tok of tokens) {
+        switch (tok.type) {
 
-      const content = doc.body;
+          case 'heading':
+            if (tok.depth <= 2) {
+              body.push(sectionBanner(tok.text));
+            } else if (tok.depth === 3) {
+              body.push({ text: strip(tok.text), fontSize: 11, bold: true, color: '#000000', margin: [0, 10, 0, 3] });
+            } else {
+              body.push({ text: strip(tok.text), fontSize: 10, bold: true, color: '#222222', margin: [0, 6, 0, 2] });
+            }
+            break;
 
-      html2pdf().set({
-        margin:      [0.5, 0.5, 0.5, 0.5],
-        filename:    filename,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', scrollY: 0, scrollX: 0 },
-        jsPDF:       { unit: 'in', format: 'a4', orientation: 'portrait' },
-      }).from(content).save().then(() => document.body.removeChild(iframe));
+          case 'paragraph':
+            body.push({ text: inline(tok.text), fontSize: 10, color: '#000000', margin: [0, 2, 0, 5], lineHeight: 1.45 });
+            break;
+
+          case 'list': {
+            const items = tok.items.map(item => ({ text: inline(strip(item.text)), margin: [0, 1, 0, 1] }));
+            body.push(tok.ordered
+              ? { ol: items, fontSize: 10, color: '#000000', margin: [10, 2, 0, 7] }
+              : { ul: items, fontSize: 10, color: '#000000', margin: [10, 2, 0, 7] }
+            );
+            break;
+          }
+
+          case 'table': {
+            const getCellText = c => (typeof c === 'string' ? c : c.text) || '';
+            const colCount = tok.header.length;
+            const headerRow = tok.header.map(c => ({
+              text: strip(getCellText(c)), bold: true,
+              color: '#ffffff', fillColor: '#1a1a2e', fontSize: 9
+            }));
+            const bodyRows = tok.rows.map((row, ri) =>
+              row.map(c => ({
+                text: inline(getCellText(c)),
+                fontSize: 9, color: '#000000',
+                fillColor: ri % 2 === 0 ? '#f4f4f4' : '#ffffff'
+              }))
+            );
+            body.push({
+              table: {
+                headerRows: 1,
+                widths: Array(colCount).fill('*'),
+                body: [headerRow, ...bodyRows]
+              },
+              layout: {
+                hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 1 : 0.5,
+                vLineWidth: () => 0.5,
+                hLineColor: () => '#bbbbbb',
+                vLineColor: () => '#bbbbbb',
+                paddingLeft:   () => 8, paddingRight:  () => 8,
+                paddingTop:    () => 6, paddingBottom: () => 6
+              },
+              margin: [0, 4, 0, 12]
+            });
+            break;
+          }
+
+          case 'hr':
+            body.push({
+              canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#cccccc' }],
+              margin: [0, 8, 0, 8]
+            });
+            break;
+        }
+      }
+
+      pdfMake.createPdf({
+        pageSize:    'A4',
+        pageMargins: [40, 40, 40, 50],
+        content:     body,
+        footer: (currentPage, pageCount) => ({
+          text: `Tommy's Fitness Plan  •  Page ${currentPage} of ${pageCount}`,
+          alignment: 'center', fontSize: 8, color: '#999999', margin: [0, 10, 0, 0]
+        }),
+        defaultStyle: { font: 'Roboto', fontSize: 10, color: '#000000', lineHeight: 1.3 }
+      }).download(filename);
     }
 
     /* ── Plan generation ── */
